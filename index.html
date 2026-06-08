@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shoulder MRI — Stack Viewer (Study 2026-05-18)</title>
+<style>
+  :root { --bg:#0d0f12; --panel:#181b20; --accent:#4da3ff; --text:#d7dce2; --dim:#7a838f; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font:14px/1.5 -apple-system, Helvetica, Arial, sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+  header { padding:10px 16px; background:var(--panel); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  header h1 { font-size:15px; font-weight:600; margin-right:12px; }
+  .tab { padding:6px 12px; border-radius:6px; background:#23272e; color:var(--dim); cursor:pointer; border:1px solid transparent; font-size:13px; }
+  .tab.active { color:#fff; border-color:var(--accent); background:#2c3440; }
+  main { flex:1; display:flex; align-items:center; justify-content:center; position:relative; min-height:0; }
+  #stage { max-height:100%; max-width:100%; user-select:none; -webkit-user-drag:none; image-rendering:auto; }
+  #hud { position:absolute; top:10px; left:14px; font-size:13px; color:var(--accent); text-shadow:0 0 4px #000; pointer-events:none; }
+  #hint { position:absolute; bottom:10px; right:14px; font-size:12px; color:var(--dim); pointer-events:none; }
+  footer { padding:10px 16px; background:var(--panel); display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  input[type=range] { flex:1; min-width:160px; accent-color:var(--accent); }
+  label { color:var(--dim); font-size:12px; display:flex; align-items:center; gap:6px; }
+  .ctl { width:120px; }
+  button { background:#23272e; color:var(--text); border:1px solid #333a44; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:12px; }
+  button:hover { border-color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Shoulder MRI — left (18 May 2026)</h1>
+  <div id="tabs"></div>
+</header>
+<main id="main">
+  <img id="stage" draggable="false" alt="MRI slice">
+  <div id="hud"></div>
+  <div id="hint">scroll wheel / &#8593;&#8595; keys / drag slider &nbsp;·&nbsp; 1–5 switch series &nbsp;·&nbsp; space: play/pause</div>
+</main>
+<footer>
+  <button id="play">▶ Play</button>
+  <input type="range" id="slider" min="1" value="1">
+  <label>Brightness <input type="range" class="ctl" id="bri" min="50" max="200" value="100"></label>
+  <label>Contrast <input type="range" class="ctl" id="con" min="50" max="250" value="100"></label>
+  <button id="reset">Reset</button>
+</footer>
+<script>
+const SERIES = [
+  { name:"AX T2 FS",  dir:"MRI_PNG_export/Series_5001_AX__T2W_FS_IZQUIERDO", n:25, desc:"Axial T2 fat-sat" },
+  { name:"AX PD",     dir:"MRI_PNG_export/Series_6001_AX_DP_IZQUIERDO",      n:25, desc:"Axial proton density" },
+  { name:"COR T2 FS", dir:"MRI_PNG_export/Series_7001_CO_T2W_FS_IZQUIERDO",  n:25, desc:"Coronal T2 fat-sat" },
+  { name:"COR T2",    dir:"MRI_PNG_export/Series_8001_CO_T2W_IZQUIERDO",     n:25, desc:"Coronal T2" },
+  { name:"SAG T2 FS", dir:"MRI_PNG_export/Series_9001_SAG_T2W_FS_IZQUIERDO", n:30, desc:"Sagittal T2 fat-sat" },
+];
+let cur = 0, slice = 1, playing = false, timer = null;
+const stage = document.getElementById('stage'), slider = document.getElementById('slider'),
+      hud = document.getElementById('hud'), tabs = document.getElementById('tabs'),
+      bri = document.getElementById('bri'), con = document.getElementById('con'),
+      playBtn = document.getElementById('play');
+
+SERIES.forEach((s,i)=>{
+  const t = document.createElement('div');
+  t.className = 'tab'; t.textContent = (i+1)+'. '+s.name; t.title = s.desc;
+  t.onclick = ()=>setSeries(i);
+  tabs.appendChild(t);
+});
+
+function pad(n){ return String(n).padStart(3,'0'); }
+function src(si,sl){ return SERIES[si].dir+'/img_'+pad(sl)+'.png'; }
+
+function preload(si){ for(let k=1;k<=SERIES[si].n;k++){ const im=new Image(); im.src=src(si,k); } }
+
+function setSeries(i){
+  cur = i; slice = Math.min(slice, SERIES[i].n);
+  slider.max = SERIES[i].n; slider.value = slice;
+  document.querySelectorAll('.tab').forEach((t,k)=>t.classList.toggle('active',k===i));
+  preload(i); render();
+}
+function setSlice(v){
+  slice = Math.max(1, Math.min(SERIES[cur].n, v));
+  slider.value = slice; render();
+}
+function render(){
+  stage.src = src(cur, slice);
+  hud.innerHTML = SERIES[cur].desc + '<br>Slice ' + slice + ' / ' + SERIES[cur].n;
+  stage.style.filter = 'brightness('+bri.value/100+') contrast('+con.value/100+')';
+}
+document.getElementById('main').addEventListener('wheel', e=>{
+  e.preventDefault(); setSlice(slice + (e.deltaY>0?1:-1));
+}, {passive:false});
+slider.oninput = e=>setSlice(+e.target.value);
+bri.oninput = render; con.oninput = render;
+document.getElementById('reset').onclick = ()=>{ bri.value=100; con.value=100; render(); };
+playBtn.onclick = togglePlay;
+function togglePlay(){
+  playing = !playing;
+  playBtn.textContent = playing ? '⏸ Pause' : '▶ Play';
+  if(playing){ timer = setInterval(()=>{ setSlice(slice >= SERIES[cur].n ? 1 : slice+1); }, 180); }
+  else clearInterval(timer);
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowDown'||e.key==='ArrowRight'){ e.preventDefault(); setSlice(slice+1); }
+  if(e.key==='ArrowUp'||e.key==='ArrowLeft'){ e.preventDefault(); setSlice(slice-1); }
+  if(e.key===' '){ e.preventDefault(); togglePlay(); }
+  if(e.key>='1'&&e.key<='5'){ setSeries(+e.key-1); }
+});
+setSeries(0);
+</script>
+</body>
+</html>
