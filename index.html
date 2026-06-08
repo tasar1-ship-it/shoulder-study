@@ -42,11 +42,11 @@
 </footer>
 <script>
 const SERIES = [
-  { name:"AX T2 FS",  dir:"MRI_PNG_export/Series_5001_AX__T2W_FS_IZQUIERDO", n:25, desc:"Axial T2 fat-sat" },
-  { name:"AX PD",     dir:"MRI_PNG_export/Series_6001_AX_DP_IZQUIERDO",      n:25, desc:"Axial proton density" },
-  { name:"COR T2 FS", dir:"MRI_PNG_export/Series_7001_CO_T2W_FS_IZQUIERDO",  n:25, desc:"Coronal T2 fat-sat" },
-  { name:"COR T2",    dir:"MRI_PNG_export/Series_8001_CO_T2W_IZQUIERDO",     n:25, desc:"Coronal T2" },
-  { name:"SAG T2 FS", dir:"MRI_PNG_export/Series_9001_SAG_T2W_FS_IZQUIERDO", n:30, desc:"Sagittal T2 fat-sat" },
+  { name:"AX T2 FS",  dir:"Series_5001_AX__T2W_FS_IZQUIERDO", n:25, desc:"Axial T2 fat-sat" },
+  { name:"AX PD",     dir:"Series_6001_AX_DP_IZQUIERDO",      n:25, desc:"Axial proton density" },
+  { name:"COR T2 FS", dir:"Series_7001_CO_T2W_FS_IZQUIERDO",  n:25, desc:"Coronal T2 fat-sat" },
+  { name:"COR T2",    dir:"Series_8001_CO_T2W_IZQUIERDO",     n:25, desc:"Coronal T2" },
+  { name:"SAG T2 FS", dir:"Series_9001_SAG_T2W_FS_IZQUIERDO", n:30, desc:"Sagittal T2 fat-sat" },
 ];
 let cur = 0, slice = 1, playing = false, timer = null;
 const stage = document.getElementById('stage'), slider = document.getElementById('slider'),
